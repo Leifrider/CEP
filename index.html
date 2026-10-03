@@ -1,0 +1,321 @@
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Calculadora de Frete - Uninassau & Uber Moto</title>
+        <style>
+            :root {
+                --primary-color: #4f46e5;
+                --primary-hover: #4338ca;
+                --bg-color: #f3f4f6;
+                --card-bg: #ffffff;
+                --text-color: #1f2937;
+                --text-light: #6b7280;
+                --border-color: #e5e7eb;
+                --success-color: #10b981;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            }
+
+            body {
+                background-color: var(--bg-color);
+                color: var(--text-color);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                padding: 20px;
+            }
+
+            .container {
+                background-color: var(--card-bg);
+                width: 100%;
+                max-width: 500px;
+                padding: 30px;
+                border-radius: 16px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                color: var(--primary-color);
+                margin-bottom: 8px;
+                text-align: center;
+            }
+
+            p.subtitle {
+                font-size: 0.9rem;
+                color: var(--text-light);
+                text-align: center;
+                margin-bottom: 24px;
+            }
+
+            .input-group {
+                margin-bottom: 20px;
+            }
+
+            label {
+                display: block;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 8px;
+                color: var(--text-color);
+            }
+
+            .search-box {
+                display: flex;
+                gap: 10px;
+            }
+
+            input[type="text"] {
+                flex: 1;
+                padding: 12px 16px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                font-size: 1rem;
+                outline: none;
+                transition: border-color 0.2s;
+            }
+
+            input[type="text"]:focus {
+                border-color: var(--primary-color);
+            }
+
+            button {
+                background-color: var(--primary-color);
+                color: white;
+                border: none;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+
+            button:hover {
+                background-color: var(--primary-hover);
+            }
+
+            .loading {
+                text-align: center;
+                color: var(--text-light);
+                font-size: 0.9rem;
+                margin: 15px 0;
+                display: none;
+            }
+
+            .result-container {
+                margin-top: 25px;
+                border-top: 1px solid var(--border-color);
+                padding-top: 20px;
+                display: none;
+            }
+
+            .result-card {
+                background-color: #f9fafb;
+                border-radius: 8px;
+                padding: 16px;
+                margin-bottom: 12px;
+                border: 1px solid var(--border-color);
+            }
+
+            .result-item {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                font-size: 0.95rem;
+            }
+
+            .result-item:last-child {
+                margin-bottom: 0;
+            }
+
+            .result-label {
+                color: var(--text-light);
+            }
+
+            .result-value {
+                font-weight: 600;
+                color: var(--text-color);
+            }
+
+            .highlight {
+                color: var(--success-color);
+                font-size: 1.1rem;
+            }
+
+            .error-message {
+                background-color: #fee2e2;
+                color: #b91c1c;
+                padding: 12px;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                margin-top: 15px;
+                display: none;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div class="container">
+            <h1>Calculadora de Frete</h1>
+            <p class="subtitle">Baseada na Uninassau (Dorotéias - Fortaleza/CE)</p>
+
+            <div class="input-group">
+                <label for="cepInput">Informe o CEP de Destino:</label>
+                <div class="search-box">
+                    <input type="text" id="cepInput" placeholder="Ex: 60135-210" maxlength="9" oninput="mascaraCep(this)">
+                    <button onclick="calcularFrete()">Calcular</button>
+                </div>
+            </div>
+
+            <div id="loading" class="loading">Consultando APIs e calculando rota...</div>
+            <div id="errorMessage" class="error-message"></div>
+
+            <div id="resultContainer" class="result-container">
+                <div class="result-card">
+                    <div class="result-item">
+                        <span class="result-label">Endereço:</span>
+                        <span class="result-value" id="resEndereco">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Bairro / Cidade:</span>
+                        <span class="result-value" id="resBairro">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Distância aprox.:</span>
+                        <span class="result-value" id="resDistancia">-</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-item">
+                        <span class="result-label">Estimação Uber Moto:</span>
+                        <span class="result-value" id="resUber">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Valor Sugerido do Frete:</span>
+                        <span class="result-value highlight" id="resFrete">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Coordenadas fixas da Uninassau (Campus Dorotéias - Av. Visconde do Rio Branco, 2078 - Fortaleza/CE)
+            const UNINASSAU = {
+                lat: -3.738950,
+                lon: -38.522400,
+                endereco: "Av. Visconde do Rio Branco, 2078 - Joaquim Távora"
+            };
+
+            function mascaraCep(input) {
+                let value = input.value.replace(/\D/g, "");
+                if (value.length > 5) {
+                    value = value.replace(/^(\d{5})(\d)/, "$1-$2");
+                }
+                input.value = value;
+            }
+
+            async function calcularFrete() {
+                const cep = document.getElementById('cepInput').value.replace(/\D/g, '');
+                const loading = document.getElementById('loading');
+                const errorDiv = document.getElementById('errorMessage');
+                const resultContainer = document.getElementById('resultContainer');
+
+                // Reset de telas
+                errorDiv.style.display = 'none';
+                resultContainer.style.display = 'none';
+
+                if (cep.length !== 8) {
+                    mostrarErro("Por favor, digite um CEP válido com 8 dígitos.");
+                    return;
+                }
+
+                loading.style.display = 'block';
+
+                try {
+                    // 1. Consulta ViaCEP
+                    const responseCep = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                    const dataCep = await responseCep.json();
+
+                    if (dataCep.erro) {
+                        throw new Error("CEP não encontrado na base de dados.");
+                    }
+
+                    // 2. Consulta Geocodificação (Nominatim - OpenStreetMap) para obter as coordenadas do destino
+                    const queryAddress = `${dataCep.logradouro || ''}, ${dataCep.bairro}, ${dataCep.localidade} - ${dataCep.uf}`;
+                    const responseGeo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryAddress)}`);
+                    const dataGeo = await responseGeo.json();
+
+                    let destLat, destLon;
+
+                    if (dataGeo && dataGeo.length > 0) {
+                        destLat = parseFloat(dataGeo[0].lat);
+                        destLon = parseFloat(dataGeo[0].lon);
+                    } else {
+                        // Fallback aproximado caso a rua exata não retorne coordenadas exatas
+                        throw new Error("Não foi possível mapear a localização exata deste CEP para cálculo de distância.");
+                    }
+
+                    // 3. Cálculo da Distância (Fórmula de Haversine)
+                    const distanciaKm = calcularHaversine(UNINASSAU.lat, UNINASSAU.lon, destLat, destLon);
+
+                    // 4. Lógica de precificação (Uber Moto Estimado & Frete)
+                    // Exemplo: Taxa fixa de R$ 5,00 + R$ 1,80 por KM rodado
+                    const taxaFixa = 5.00;
+                    const valorPorKm = 1.80;
+                    let precoUber = taxaFixa + (distanciaKm * valorPorKm);
+                    
+                    // Garantir um valor mínimo de corrida/frete (ex: R$ 7,00)
+                    if (precoUber < 7.00) precoUber = 7.00;
+
+                    // Preenchimento dos resultados na tela
+                    document.getElementById('resEndereco').innerText = dataCep.logradouro ? `${dataCep.logradouro}` : dataCep.bairro;
+                    document.getElementById('resBairro').innerText = `${dataCep.bairro} - ${dataCep.localidade}/${dataCep.uf}`;
+                    document.getElementById('resDistancia').innerText = `${distanciaKm.toFixed(2)} km`;
+                    document.getElementById('resUber').innerText = `R$ ${precoUber.toFixed(2).replace('.', ',')}`;
+                    document.getElementById('resFrete').innerText = `R$ ${precoUber.toFixed(2).replace('.', ',')}`;
+
+                    resultContainer.style.display = 'block';
+
+                } catch (error) {
+                    mostrarErro(error.message || "Ocorreu um erro ao buscar os dados. Tente novamente.");
+                } finally {
+                    loading.style.display = 'none';
+                }
+            }
+
+            // Função de cálculo de distância Haversine (retorna em quilômetros)
+            function calcularHaversine(lat1, lon1, lat2, lon2) {
+                const R = 6371; // Raio da Terra em km
+                const dLat = grauParaRadianos(lat2 - lat1);
+                const dLon = grauParaRadianos(lon2 - lon1);
+                const a = 
+                    Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(grauParaRadianos(lat1)) * Math.cos(grauParaRadianos(lat2)) * 
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return R * c;
+            }
+
+            function grauParaRadianos(grau) {
+                return grau * (Math.PI/180);
+            }
+
+            function mostrarErro(mensagem) {
+                const errorDiv = document.getElementById('errorMessage');
+                errorDiv.innerText = mensagem;
+                errorDiv.style.display = 'block';
+            }
+        </script>
+    </body>
+    </html>
